@@ -57,3 +57,10 @@ sistema_fcc_api/migrations
 # Upload data
 /uploadData
 .DS_Store
+
+# Local secrets
+.django-secret
+.env
+my.cnf
+my.local.cnf
+backups/

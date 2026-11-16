@@ -1,4 +1,4 @@
-import random
+import secrets
 import string
 import base64
 
@@ -8,13 +8,13 @@ class Utils:
     def randomString(stringLength=10):
         """Generate a random string of fixed length """
         letters = string.ascii_lowercase
-        return ''.join(random.choice(letters) for i in range(stringLength))
+        return ''.join(secrets.choice(letters) for i in range(stringLength))
 
     @staticmethod
     def randomNumber(numberLength=10):
         """Generate a random number of fixed length """
         digits = string.digits
-        return ''.join(random.choice(digits) for i in range(numberLength))
+        return ''.join(secrets.choice(digits) for i in range(numberLength))
 
     @staticmethod
     def requestRawFileToB64(file):

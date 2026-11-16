@@ -2,8 +2,10 @@ from app_movil_mantenimiento_api.models import *
 import json
 import requests
 import datetime
-import random
+import secrets
 import string
+from urllib.parse import urlparse
+from django.conf import settings
 
 class DataUtils:
 
@@ -27,13 +29,13 @@ class DataUtils:
     def randomString(stringLength=10):
         """Generate a random string of fixed length """
         letters = string.ascii_lowercase
-        return ''.join(random.choice(letters) for i in range(stringLength))
+        return ''.join(secrets.choice(letters) for i in range(stringLength))
 
     @staticmethod
     def randomNumber(numberLength=10):
         """Generate a random number of fixed length """
         digits = string.digits
-        return ''.join(random.choice(digits) for i in range(numberLength))
+        return ''.join(secrets.choice(digits) for i in range(numberLength))
 
     @staticmethod
     def get_file_extension(mime_type):
@@ -66,12 +68,15 @@ class DataUtils:
 
     @staticmethod
     def is_url_image(image_url):
+        parsed = urlparse(image_url)
+        if parsed.scheme != 'https' or parsed.username or parsed.password or parsed.hostname not in getattr(settings, 'IMAGE_HOST_ALLOWLIST', ()):
+            return False
         image_formats = ("image/png", "image/jpeg", "image/jpg")
-        r = requests.head(image_url)
-        print("Content type:: "+str(r.headers["content-type"]))
-        if r.headers["content-type"] in image_formats:
-            return True
-        return False
+        try:
+            with requests.head(image_url, timeout=5, allow_redirects=False) as response:
+                return response.ok and response.headers.get('content-type', '').split(';')[0].strip().lower() in image_formats
+        except requests.RequestException:
+            return False
 
     @staticmethod
     def getUrl(request):

@@ -3,11 +3,13 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from .views.bootstrap import VersionView
+from .views.historial import HistorialTickets
 from app_movil_mantenimiento_api.views import auth
 from app_movil_mantenimiento_api.views import users, trabajadores, ticket, notificaciones
 
 
 urlpatterns = [
+        path('historial-tickets/', HistorialTickets.as_view()),
     #Create Admin User
         path('admin/', users.AdminView.as_view()),
     #Create Trabajador User
@@ -25,6 +27,7 @@ urlpatterns = [
         path('cambiar-password/', users.ChangePasswordView.as_view()),
         path('notificaciones/', notificaciones.NotificacionesView.as_view()),
     #Login and Logout
+        path('me/', auth.MeView.as_view()),
         path('login/', auth.CustomAuthToken.as_view()),
         path('logout/', auth.Logout.as_view()), 
 ]

@@ -27,7 +27,33 @@ class TrabajadoresSerializer(serializers.ModelSerializer):
 
 class TicketSerializer(serializers.ModelSerializer):
     usuario = UserSerializer(read_only=True)
+    numero_ticket = serializers.CharField(read_only=True)
 
     class Meta:
         model = Ticket
         fields = "__all__"
+
+
+class TicketInputSerializer(serializers.Serializer):
+    inventario = serializers.RegexField(r"^[0-9]{10}$")
+    marca = serializers.CharField(max_length=60)
+    edificio = serializers.CharField(max_length=100)
+    area = serializers.CharField(max_length=100)
+    descripcion = serializers.CharField(max_length=1000)
+    equipo = serializers.JSONField()
+    problema = serializers.JSONField()
+    sistema_operativo = serializers.ChoiceField(
+        choices=("Windows 10", "Windows 11", "MacOS", "Otro"), allow_null=True, required=False
+    )
+    estatus = serializers.ChoiceField(choices=Ticket.ESTATUS_CHOICES, required=False)
+    prioridad = serializers.ChoiceField(choices=("critica", "alta", "media", "baja"), required=False, allow_null=True)
+    respuesta_usuario = serializers.CharField(max_length=1000, required=False, allow_null=True, allow_blank=True)
+    descripcion_reparacion = serializers.CharField(max_length=1000, required=False, allow_null=True, allow_blank=True)
+
+
+class PasswordChangeSerializer(serializers.Serializer):
+    role = serializers.ChoiceField(choices=("administrador", "trabajador"))
+    target_id = serializers.IntegerField(min_value=1, max_value=9223372036854775807)
+    current_password = serializers.CharField(required=False, allow_blank=True, trim_whitespace=False, max_length=4096)
+    new_password = serializers.CharField(trim_whitespace=False, max_length=4096)
+    confirm_password = serializers.CharField(trim_whitespace=False, max_length=4096)

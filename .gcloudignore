@@ -1,0 +1,8 @@
+.git/
+.django-secret
+.env
+my.local.cnf
+env/
+__pycache__/
+*.pyc
+backups/

@@ -1,3 +1,4 @@
+from app_movil_mantenimiento_api.validation import positive_id
 from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -9,6 +10,8 @@ class NotificacionesView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     def get(self, request, *args, **kwargs):
+        if request.query_params.get("summary") == "true":
+            return Response({"unread_count": Notificacion.objects.filter(destinatario=request.user, leida=False).count()})
         notificaciones = Notificacion.objects.filter(
             destinatario=request.user
         ).select_related("ticket")[:50]
@@ -34,7 +37,7 @@ class NotificacionesView(APIView):
 
     def patch(self, request, *args, **kwargs):
         notificacion = Notificacion.objects.filter(
-            id=request.data.get("id"),
+            id=positive_id(request.data.get("id")),
             destinatario=request.user,
         ).first()
         if notificacion is None:

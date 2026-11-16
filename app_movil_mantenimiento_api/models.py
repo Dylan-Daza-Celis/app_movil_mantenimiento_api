@@ -1,17 +1,23 @@
 from django.db import models
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-from rest_framework.authentication import TokenAuthentication
-from django.contrib.auth.models import AbstractUser, User
-from django.conf import settings
-
-from django.db import models
 from django.contrib.auth.models import User
-
 from rest_framework.authentication import TokenAuthentication
+from django.conf import settings
+from django.utils import timezone
+from rest_framework.exceptions import AuthenticationFailed
 
 class BearerTokenAuthentication(TokenAuthentication):
     keyword = "Bearer"
+
+    def authenticate_credentials(self, key):
+        user, token = super().authenticate_credentials(key)
+        if (timezone.now() - token.created).total_seconds() >= settings.AUTH_TOKEN_MAX_AGE_SECONDS:
+            raise AuthenticationFailed("La sesión expiró. Inicia sesión nuevamente.")
+        return user, token
+
+class TicketCounter(models.Model):
+    fecha = models.DateField(primary_key=True)
+    ultimo = models.PositiveIntegerField(default=0)
+
 
 class Administradores(models.Model):
     id = models.BigAutoField(primary_key=True)
@@ -43,6 +49,11 @@ class Trabajadores(models.Model):
         return "Perfil del trabajador" +self.user.first_name+" "+self.user.last_name
 
 
+def default_ticket_id():
+    from .ticket_numbers import next_ticket_number
+    return next_ticket_number()
+
+
 class Ticket(models.Model):
     ESTATUS_PENDIENTE = "pendiente"
     ESTATUS_EN_PROCESO = "en_proceso"
@@ -53,14 +64,12 @@ class Ticket(models.Model):
         (ESTATUS_RESUELTO, "Resuelto"),
     )
 
-    id_ticket = models.BigAutoField(primary_key=True)
-    numero_ticket = models.CharField(
-        max_length=14,
-        unique=True,
-        null=True,
-        blank=True,
-        editable=False,
-    )
+    id_ticket = models.CharField(max_length=14, primary_key=True, default=default_ticket_id, editable=False)
+
+    @property
+    def numero_ticket(self):
+        # Compatibility alias: there is only one identifier stored in the database.
+        return self.id_ticket
     usuario = models.ForeignKey(User, on_delete=models.PROTECT, related_name="tickets")
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     respuesta_usuario = models.TextField(null=True, blank=True)
@@ -79,6 +88,9 @@ class Ticket(models.Model):
     descripcion_reparacion = models.TextField(max_length=1000, null=True, blank=True)
     fecha_respuesta = models.DateTimeField(null=True, blank=True)
     fecha_modificacion = models.DateTimeField(null=True, blank=True)
+    fecha_finalizacion = models.DateTimeField(null=True, blank=True, db_index=True)
+    finalizado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='tickets_finalizados')
+    solicitante_snapshot = models.JSONField(default=dict, blank=True)
     sistema_operativo = models.CharField(max_length=30, null=True, blank=True)
     problema = models.JSONField(default=dict)
 
