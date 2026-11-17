@@ -209,6 +209,20 @@ class ApplicationFlowTests(TestCase):
         fourth = self.new_ticket()
         self.assertEqual(int(fourth.numero_ticket[-3:]), 4)
 
+    def test_ticket_folio_uses_puebla_date_and_resets_at_local_midnight(self):
+        from unittest.mock import patch
+        self.assertEqual(settings.TIME_ZONE, 'America/Mexico_City')
+        with timezone.override('America/Mexico_City'):
+            with patch('app_movil_mantenimiento_api.ticket_numbers.timezone.now', return_value=datetime(2026,11,17,0,30,tzinfo=datetime_timezone.utc)):
+                first = self.new_ticket()
+            with patch('app_movil_mantenimiento_api.ticket_numbers.timezone.now', return_value=datetime(2026,11,17,5,59,tzinfo=datetime_timezone.utc)):
+                second = self.new_ticket()
+            with patch('app_movil_mantenimiento_api.ticket_numbers.timezone.now', return_value=datetime(2026,11,17,6,0,tzinfo=datetime_timezone.utc)):
+                third = self.new_ticket()
+        self.assertEqual(first.pk, 'MANT-261116001')
+        self.assertEqual(second.pk, 'MANT-261116002')
+        self.assertEqual(third.pk, 'MANT-261117001')
+
     def test_counter_recovers_existing_legacy_folios(self):
         first = self.new_ticket()
         Notificacion.objects.filter(ticket=first).delete()
