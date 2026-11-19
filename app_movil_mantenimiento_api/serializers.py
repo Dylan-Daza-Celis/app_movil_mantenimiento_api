@@ -49,6 +49,7 @@ class TicketInputSerializer(serializers.Serializer):
     prioridad = serializers.ChoiceField(choices=("critica", "alta", "media", "baja"), required=False, allow_null=True)
     respuesta_usuario = serializers.CharField(max_length=1000, required=False, allow_null=True, allow_blank=True)
     descripcion_reparacion = serializers.CharField(max_length=1000, required=False, allow_null=True, allow_blank=True)
+    solucionado_por = serializers.CharField(max_length=500, required=False, allow_null=True, allow_blank=True)
 
 
 class PasswordChangeSerializer(serializers.Serializer):

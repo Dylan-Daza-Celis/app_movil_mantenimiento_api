@@ -168,7 +168,7 @@ class TicketView(generics.GenericAPIView):
             return Response({'detail': 'El reporte ya está finalizado y se conserva en el historial.'}, status=409)
         if not self.es_administrador(request) and any(
             campo in request.data
-            for campo in ("estatus", "prioridad", "respuesta_usuario", "descripcion_reparacion")
+            for campo in ("estatus", "prioridad", "respuesta_usuario", "descripcion_reparacion", "solucionado_por")
         ):
             return Response(
                 {"detail": "Solo un administrador puede actualizar el seguimiento del ticket."},
@@ -180,7 +180,7 @@ class TicketView(generics.GenericAPIView):
         merged = {field: getattr(ticket, field) for field in (
             "inventario", "marca", "equipo", "edificio", "area", "descripcion",
             "sistema_operativo", "problema", "estatus", "prioridad",
-            "respuesta_usuario", "descripcion_reparacion"
+            "respuesta_usuario", "descripcion_reparacion", "solucionado_por"
         )}
         merged.update(datos)
         serializer = TicketInputSerializer(data=merged)
@@ -220,6 +220,13 @@ class TicketView(generics.GenericAPIView):
                         status=status.HTTP_400_BAD_REQUEST,
                     )
                 ticket.descripcion_reparacion = descripcion_reparacion
+                solucionado_por = (serializer.validated_data.get("solucionado_por") or "").strip()
+                if not solucionado_por:
+                    return Response(
+                        {"solucionado_por": "Escribe quién o quiénes solucionaron la falla."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                ticket.solucionado_por = solucionado_por
                 ticket.fecha_finalizacion = timezone.now()
                 ticket.finalizado_por = request.user
                 ticket.fecha_modificacion = timezone.now()

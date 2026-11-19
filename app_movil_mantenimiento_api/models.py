@@ -86,6 +86,7 @@ class Ticket(models.Model):
     area = models.CharField(max_length=100)
     descripcion = models.TextField(max_length=1000)
     descripcion_reparacion = models.TextField(max_length=1000, null=True, blank=True)
+    solucionado_por = models.TextField(max_length=500, null=True, blank=True)
     fecha_respuesta = models.DateTimeField(null=True, blank=True)
     fecha_modificacion = models.DateTimeField(null=True, blank=True)
     fecha_finalizacion = models.DateTimeField(null=True, blank=True, db_index=True)

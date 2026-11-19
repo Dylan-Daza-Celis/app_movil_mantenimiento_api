@@ -155,7 +155,7 @@ class ApplicationFlowTests(TestCase):
         self.as_user(self.admin)
         response = self.client.put("/ticket/", {"id_ticket": ticket.pk, "respuesta_usuario": "En revisión"}, format="json")
         self.assertEqual(response.status_code, 200, response.data)
-        response = self.client.put("/ticket/", {"id_ticket": ticket.pk, "estatus": "resuelto", "descripcion_reparacion": "Se cambió la fuente"}, format="json")
+        response = self.client.put("/ticket/", {"id_ticket": ticket.pk, "estatus": "resuelto", "descripcion_reparacion": "Se cambió la fuente", "solucionado_por": "Ana Pérez y Luis López"}, format="json")
         self.assertEqual(response.status_code, 200, response.data)
         self.assertEqual(len(self.client.get("/lista-tickets/").data), 0)
         self.assertEqual(self.client.get('/historial-tickets/').data['count'], 1)
@@ -178,6 +178,29 @@ class ApplicationFlowTests(TestCase):
         self.assertEqual(self.client.put("/ticket/", {"id_ticket": ticket.pk, "respuesta_usuario": "Mensaje"}, format="json").status_code, 200)
         ticket.refresh_from_db()
         self.assertEqual(ticket.prioridad, "baja")
+
+    def test_resolving_requires_valid_solver_names_without_saving_partial_changes(self):
+        ticket = self.new_ticket()
+        self.as_user(self.admin)
+        for names in (None, '', '   ', 'a' * 501, ['Ana', 'Luis']):
+            with self.subTest(names=names):
+                response = self.client.put('/ticket/', {
+                    'id_ticket': ticket.pk, 'estatus': 'resuelto',
+                    'descripcion_reparacion': 'Equipo reparado', 'solucionado_por': names,
+                }, format='json')
+                self.assertEqual(response.status_code, 400)
+                self.assertIn('solucionado_por', response.data)
+                ticket.refresh_from_db()
+                self.assertEqual(ticket.estatus, 'pendiente')
+                self.assertIsNone(ticket.fecha_finalizacion)
+                self.assertIsNone(ticket.descripcion_reparacion)
+
+    def test_worker_cannot_set_solver_names(self):
+        ticket = self.new_ticket()
+        response = self.client.put('/ticket/', {'id_ticket': ticket.pk, 'solucionado_por': 'Ana'}, format='json')
+        self.assertEqual(response.status_code, 403)
+        ticket.refresh_from_db()
+        self.assertIsNone(ticket.solucionado_por)
 
     def test_malformed_tickets_return_validation_errors(self):
         self.as_user(self.worker)
@@ -379,7 +402,7 @@ class ApplicationFlowTests(TestCase):
     def test_finalized_ticket_moves_to_history_with_full_details(self):
         ticket = self.new_ticket()
         self.as_user(self.admin)
-        response = self.client.put('/ticket/', {'id_ticket': ticket.pk, 'estatus': 'resuelto', 'descripcion_reparacion': 'Se reemplazó la fuente'}, format='json')
+        response = self.client.put('/ticket/', {'id_ticket': ticket.pk, 'estatus': 'resuelto', 'descripcion_reparacion': 'Se reemplazó la fuente', 'solucionado_por': '  Ana Pérez y Luis López  '}, format='json')
         self.assertEqual(response.status_code, 200)
         ticket.refresh_from_db()
         self.assertIsNotNone(ticket.fecha_finalizacion)
@@ -388,6 +411,8 @@ class ApplicationFlowTests(TestCase):
         result = self.client.get('/historial-tickets/').data
         self.assertEqual(result['count'], 1)
         self.assertEqual(result['results'][0]['descripcion_reparacion'], 'Se reemplazó la fuente')
+        self.assertEqual(result['results'][0]['solucionado_por'], 'Ana Pérez y Luis López')
+        self.assertEqual(self.client.get('/ticket/', {'id': ticket.pk}).data['solucionado_por'], 'Ana Pérez y Luis López')
         self.assertEqual(result['stats']['total'], 1)
         original_date = ticket.fecha_finalizacion
         self.assertEqual(self.client.put('/ticket/', {'id_ticket': ticket.pk, 'respuesta_usuario': 'Otro mensaje'}, format='json').status_code, 409)

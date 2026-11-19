@@ -13,6 +13,10 @@ Para verificar la conversión con datos sintéticos, sin tocar los reportes de l
 
 ## Historial de reportes
 
+El cierre requiere `descripcion_reparacion` y `solucionado_por` (nombres de quienes resolvieron la falla, hasta 500 caracteres). `finalizado_por` conserva por separado al administrador que registró el cierre. Aplicar la migración `0012_ticket_solucionado_por` en cada entorno antes de usar este flujo; los reportes antiguos conservan el campo vacío.
+
+Desde el historial administrativo se imprime el ticket de mantenimiento, de 80 mm de ancho y altura ajustada al contenido, para adjuntarlo al vale existente. El botón abre la ventana de impresión del navegador y no descarga archivos. El comprobante incluye la reparación, los responsables y el cierre, sin firma del solicitante. Configurar la impresora con papel de 80 mm, escala 100 % y sin encabezados ni pies del navegador.
+
 Aplicar `python manage.py migrate` antes de iniciar con estos cambios (migración `0010_ticket_cierre`).
 
 - `/lista-tickets/` devuelve únicamente reportes activos.
